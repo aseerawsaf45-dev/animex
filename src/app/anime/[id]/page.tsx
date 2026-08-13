@@ -3,6 +3,7 @@ import { AnimeCard } from "@/components/anime/AnimeCard";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import { Star, Plus, Play, Sparkles, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { WatchlistDetailButtons } from "@/components/anime/WatchlistDetailButtons";
 
 import { prisma } from "@/lib/prisma";
 import { getAnimeById, getTrendingAnime } from "@/lib/anilist";
@@ -145,14 +146,8 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 mt-8">
-                <button className="bg-vermilion hover:bg-crimson text-white font-label font-bold uppercase tracking-wider text-sm px-8 py-3.5 rounded-full flex items-center gap-2 transition-all duration-300 shadow-glow hover:shadow-glow-lg transform hover:-translate-y-0.5">
-                  <Plus className="w-4 h-4" />
-                  Add to Watchlist
-                </button>
-                <button className="bg-transparent border border-white/20 hover:border-white/50 text-white font-label font-bold uppercase tracking-wider text-sm px-8 py-3.5 rounded-full transition-all duration-300 hover:bg-white/5">
-                  Rate Anime
-                </button>
+              <div className="mt-8">
+                <WatchlistDetailButtons animeId={Number(anime.id)} />
               </div>
             </FadeIn>
           </div>
