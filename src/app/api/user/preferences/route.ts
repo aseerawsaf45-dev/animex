@@ -28,27 +28,38 @@ export async function POST(req: NextRequest) {
 
     const { preferences, onboardingCompleted } = await req.json();
 
+    const genres: string[] = preferences?.genres || [];
+    const themesCombined: string[] = [
+      ...(preferences?.themes || []),
+      ...(preferences?.pacing ? [preferences.pacing] : []),
+      ...(preferences?.protagonist ? [preferences.protagonist] : []),
+      ...(preferences?.atmosphere ? [preferences.atmosphere] : []),
+      ...(preferences?.payoff ? [preferences.payoff] : []),
+    ].filter(Boolean);
+
+    const eras: string[] = preferences?.eras || [];
+    const experience: string = preferences?.experience || "";
+
     const updated = await prisma.userPreference.upsert({
       where: { userId: session.user.id },
       update: {
-        ...(preferences?.genres && { genreWeights: preferences.genres }),
-        ...(preferences?.themes && { themeWeights: preferences.themes }),
-        ...(preferences?.eras && { preferredEras: preferences.eras }),
-        ...(preferences?.moods && { moodPreferences: preferences.moods }),
+        genreWeights: genres,
+        themeWeights: themesCombined,
+        preferredEras: eras,
         ...(onboardingCompleted !== undefined && { onboardingDone: onboardingCompleted }),
       },
       create: {
         userId: session.user.id,
-        genreWeights: preferences?.genres || [],
-        themeWeights: preferences?.themes || [],
-        preferredEras: preferences?.eras || [],
-        moodPreferences: preferences?.moods || [],
+        genreWeights: genres,
+        themeWeights: themesCombined,
+        preferredEras: eras,
         onboardingDone: onboardingCompleted || false,
       }
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Preferences update error:", error);
     return NextResponse.json({ error: "Failed to update preferences" }, { status: 500 });
   }
 }
