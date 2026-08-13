@@ -4,22 +4,56 @@ import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import { Star, Plus, Play, Sparkles, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
-async function getAnime(id: string) {
+import { prisma } from "@/lib/prisma";
+import { getAnimeById, getTrendingAnime } from "@/lib/anilist";
+
+async function getAnime(id: string): Promise<any> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/anime/${id}`, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.data || null;
-  } catch { return null; }
+    const aniListAnime = await getAnimeById(Number(id));
+    if (aniListAnime) return aniListAnime;
+    
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId)) {
+      const dbAnime = await prisma.anime.findUnique({
+        where: { id: numericId },
+        include: { genres: { include: { genre: true } } }
+      });
+      if (dbAnime) {
+        return {
+          ...dbAnime,
+          title: { english: dbAnime.titleEnglish, romaji: dbAnime.titleRomaji },
+          description: dbAnime.synopsis,
+          coverImage: { large: dbAnime.coverImage },
+          genres: dbAnime.genres.map(g => g.genre.name),
+        };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-async function getSimilar(id: string) {
+async function getSimilar(id: string): Promise<any[]> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/anime/trending?perPage=6`, { next: { revalidate: 3600 } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.data || []).filter((a: any) => String(a.id) !== id).slice(0, 5);
-  } catch { return []; }
+    const trending = await getTrendingAnime(1, 6);
+    if (trending && trending.length > 0) {
+      return trending.filter((a: any) => String(a.id) !== id).slice(0, 5);
+    }
+    const dbSimilar = await prisma.anime.findMany({
+      where: { NOT: { id: Number(id) } },
+      orderBy: { popularity: "desc" },
+      take: 6,
+      include: { genres: { include: { genre: true } } }
+    });
+    return dbSimilar.map((db) => ({
+      ...db,
+      title: { english: db.titleEnglish, romaji: db.titleRomaji },
+      coverImage: { large: db.coverImage },
+    })).filter((a: any) => String(a.id) !== id).slice(0, 5);
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {

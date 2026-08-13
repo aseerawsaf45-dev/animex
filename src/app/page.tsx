@@ -8,29 +8,34 @@ import { ArrowRight, Sparkles, Dna } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+import { getTrendingAnime, getSeasonalAnime } from "@/lib/anilist";
+
 async function getTrending() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/anime/trending?perPage=16`, {
-      next: { revalidate: 3600 },
+    const dbAnime = await prisma.anime.findMany({
+      orderBy: { popularity: "desc" },
+      take: 16,
+      include: { genres: { include: { genre: true } } }
     });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.data || [];
+    if (dbAnime && dbAnime.length > 0) return dbAnime;
+    return await getTrendingAnime(1, 16);
   } catch {
-    return [];
+    return await getTrendingAnime(1, 16);
   }
 }
 
 async function getSeasonal() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/anime/seasonal?perPage=10`, {
-      next: { revalidate: 3600 },
+    const dbAnime = await prisma.anime.findMany({
+      where: { status: "RELEASING" },
+      orderBy: { startDate: "desc" },
+      take: 10,
+      include: { genres: { include: { genre: true } } }
     });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.data || [];
+    if (dbAnime && dbAnime.length > 0) return dbAnime;
+    return await getSeasonalAnime("FALL", 2024, 1, 10);
   } catch {
-    return [];
+    return await getSeasonalAnime("FALL", 2024, 1, 10);
   }
 }
 
