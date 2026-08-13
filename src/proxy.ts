@@ -2,29 +2,26 @@ import { auth } from "@/auth";
 
 export const proxy = auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isAuthRoute = req.nextUrl.pathname.startsWith("/login") || req.nextUrl.pathname.startsWith("/onboarding");
-  const isProtectedRoute = 
-    req.nextUrl.pathname.startsWith("/profile") || 
-    req.nextUrl.pathname.startsWith("/watchlist") || 
-    req.nextUrl.pathname.startsWith("/admin");
+  const { pathname } = req.nextUrl;
 
-  if (isAuthRoute) {
-    if (isLoggedIn) {
-      return Response.redirect(new URL("/", req.nextUrl));
-    }
-    return;
-  }
+  const isAuthRoute = pathname.startsWith("/login");
+  const isPublicAsset = pathname.startsWith("/api") || pathname.startsWith("/_next") || pathname.includes(".");
 
-  if (isProtectedRoute && !isLoggedIn) {
-    let from = req.nextUrl.pathname;
+  // 1. If unauthenticated user loads site (/ or /recommendations or /onboarding), send to /login first
+  if (!isLoggedIn && !isAuthRoute && !isPublicAsset) {
+    let from = pathname;
     if (req.nextUrl.search) {
       from += req.nextUrl.search;
     }
     return Response.redirect(new URL(`/login?from=${encodeURIComponent(from)}`, req.nextUrl));
   }
+
+  // 2. If authenticated user lands on /login, send to /onboarding
+  if (isAuthRoute && isLoggedIn) {
+    return Response.redirect(new URL("/onboarding", req.nextUrl));
+  }
 });
 
-// Optionally, don't invoke Proxy on some paths
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

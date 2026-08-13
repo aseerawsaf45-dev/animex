@@ -62,7 +62,7 @@ export default function LoginPage() {
           throw new Error("Invalid email or password. Please check your credentials.");
         }
 
-        router.push("/recommendations");
+        router.push("/onboarding");
         router.refresh();
       }
     } catch (err: any) {
