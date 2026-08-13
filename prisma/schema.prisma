@@ -1,0 +1,520 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+// ========== USER & AUTH ==========
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+  isGuest       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  userAnime      UserAnime[]
+  ratings        Rating[]
+  watchHistory   WatchHistory[]
+  watchlist      Watchlist[]
+  preferences    UserPreference?
+  recommendations Recommendation[]
+  feedback       RecommendationFeedback[]
+  userEmbedding  UserEmbedding?
+  events         UserEvent[]
+  searchHistory  SearchHistory[]
+
+  @@index([email])
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ========== ANIME CORE ==========
+
+model Anime {
+  id              Int      @id                  // AniList/Jikan ID
+  slug            String   @unique
+  titleEnglish    String?
+  titleRomaji     String
+  titleJapanese   String?
+  titleSynonyms   String[]
+  synopsis        String?  @db.Text
+  coverImage      String?
+  bannerImage     String?
+  trailerUrl      String?
+  trailerSite     String?
+  episodes        Int?
+  duration        Int?                          // minutes per episode
+  status          AnimeStatus @default(UNKNOWN)
+  source          String?                       // Manga, Light Novel, etc.
+  season          Season?
+  seasonYear      Int?
+  startDate       DateTime?
+  endDate         DateTime?
+  averageScore    Float?
+  meanScore       Float?
+  popularity      Int?
+  favourites      Int?
+  malId           Int?     @unique
+  malScore        Float?
+  malRank         Int?
+  isAdult         Boolean  @default(false)
+  countryOfOrigin String?  @default("JP")
+  updatedAtSource DateTime?
+  syncedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  genres     AnimeGenre[]
+  themes     AnimeTheme[]
+  studios    AnimeStudio[]
+  producers  AnimeProducer[]
+  characters AnimeCharacter[]
+  staff      AnimeStaff[]
+  related    AnimeRelation[]  @relation("AnimeRelations")
+  relatedBy  AnimeRelation[]  @relation("RelatedAnime")
+  tags       AnimeTag[]
+
+  userAnime       UserAnime[]
+  ratings         Rating[]
+  watchHistory    WatchHistory[]
+  watchlist       Watchlist[]
+  recommendations Recommendation[]
+  embedding       AnimeEmbedding?
+
+  @@index([slug])
+  @@index([averageScore])
+  @@index([popularity])
+  @@index([seasonYear, season])
+  @@index([status])
+}
+
+enum AnimeStatus {
+  FINISHED
+  RELEASING
+  NOT_YET_RELEASED
+  CANCELLED
+  HIATUS
+  UNKNOWN
+}
+
+enum Season {
+  SPRING
+  SUMMER
+  FALL
+  WINTER
+}
+
+// ========== METADATA MODELS ==========
+
+model Genre {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  anime AnimeGenre[]
+}
+
+model AnimeGenre {
+  animeId  Int
+  genreId  Int
+  anime    Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  genre    Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, genreId])
+}
+
+model Theme {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  anime AnimeTheme[]
+}
+
+model AnimeTheme {
+  animeId Int
+  themeId Int
+  anime   Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  theme   Theme @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, themeId])
+}
+
+model Studio {
+  id        Int    @id @default(autoincrement())
+  name      String @unique
+  isAnimator Boolean @default(false)
+  anime     AnimeStudio[]
+}
+
+model AnimeStudio {
+  animeId  Int
+  studioId Int
+  isMain   Boolean @default(false)
+  anime    Anime  @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  studio   Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, studioId])
+}
+
+model Producer {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  anime AnimeProducer[]
+}
+
+model AnimeProducer {
+  animeId    Int
+  producerId Int
+  anime      Anime    @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  producer   Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, producerId])
+}
+
+model Tag {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  anime AnimeTag[]
+}
+
+model AnimeTag {
+  animeId Int
+  tagId   Int
+  rank    Int?
+  anime   Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, tagId])
+}
+
+// ========== CHARACTERS & STAFF ==========
+
+model Character {
+  id          Int    @id
+  name        String
+  nameJapanese String?
+  image       String?
+  description String? @db.Text
+  anime       AnimeCharacter[]
+}
+
+model AnimeCharacter {
+  animeId     Int
+  characterId Int
+  role        CharacterRole @default(SUPPORTING)
+  voiceActor  String?
+  anime       Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, characterId])
+}
+
+enum CharacterRole {
+  MAIN
+  SUPPORTING
+  BACKGROUND
+}
+
+model Staff {
+  id          Int    @id
+  name        String
+  nameJapanese String?
+  image       String?
+  anime       AnimeStaff[]
+}
+
+model AnimeStaff {
+  animeId Int
+  staffId Int
+  role    String?
+  anime   Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  staff   Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, staffId])
+}
+
+model AnimeRelation {
+  animeId         Int
+  relatedAnimeId  Int
+  relationType    String
+
+  anime       Anime @relation("AnimeRelations", fields: [animeId], references: [id], onDelete: Cascade)
+  relatedAnime Anime @relation("RelatedAnime", fields: [relatedAnimeId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, relatedAnimeId])
+}
+
+// ========== USER ANIME TRACKING ==========
+
+model UserAnime {
+  id        String          @id @default(cuid())
+  userId    String
+  animeId   Int
+  status    WatchStatus     @default(PLAN_TO_WATCH)
+  progress  Int             @default(0)   // episodes watched
+  startedAt DateTime?
+  finishedAt DateTime?
+  updatedAt DateTime        @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId])
+  @@index([userId])
+  @@index([animeId])
+  @@index([status])
+}
+
+enum WatchStatus {
+  WATCHING
+  COMPLETED
+  DROPPED
+  PLAN_TO_WATCH
+  ON_HOLD
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  userId    String
+  animeId   Int
+  score     Float                         // 1–10
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId])
+  @@index([userId])
+  @@index([animeId])
+}
+
+model WatchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  animeId   Int
+  episode   Int?
+  watchedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, watchedAt])
+  @@index([animeId])
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  animeId   Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId])
+  @@index([userId])
+}
+
+// ========== USER PREFERENCES ==========
+
+model UserPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  genreWeights      Json     @default("{}")  // { "Action": 0.8, "Drama": 0.6 }
+  themeWeights      Json     @default("{}")
+  studioWeights     Json     @default("{}")
+  moodPreferences   Json     @default("[]")  // ["Dark", "Psychological"]
+  preferredEpisodes String?                  // "SHORT" | "MEDIUM" | "LONG"
+  preferredEras     String[]                 // ["2010s", "2020s"]
+  preferredSources  String[]
+  onboardingDone    Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ========== RECOMMENDATIONS ==========
+
+model Recommendation {
+  id              String   @id @default(cuid())
+  userId          String
+  animeId         Int
+  score           Float                         // 0–1 composite score
+  matchPercentage Int                           // 0–100
+  reasons         String[]                      // human-readable reasons
+  confidence      Float    @default(0.5)
+  algorithmSource String   @default("hybrid")   // content | collaborative | hybrid
+  context         String?                       // home | discover | similar
+  generatedAt     DateTime @default(now())
+  expiresAt       DateTime
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, generatedAt])
+  @@index([userId, context])
+  @@index([animeId])
+}
+
+model RecommendationFeedback {
+  id               String       @id @default(cuid())
+  userId           String
+  animeId          Int
+  feedbackType     FeedbackType
+  context          String?
+  createdAt        DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([animeId])
+}
+
+enum FeedbackType {
+  CLICK
+  WATCHLIST_ADD
+  COMPLETE
+  DROP
+  LIKE
+  DISLIKE
+  DISMISS
+}
+
+// ========== VECTORS / EMBEDDINGS ==========
+
+model AnimeEmbedding {
+  animeId       Int      @id
+  featureVector Unsupported("vector(384)")
+  synopsis      String?  @db.Text           // raw for re-embedding
+  updatedAt     DateTime @updatedAt
+
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+}
+
+model UserEmbedding {
+  userId          String   @id
+  preferenceVector Unsupported("vector(384)")
+  interactionCount Int     @default(0)
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ========== EVENTS & SEARCH ==========
+
+model UserEvent {
+  id        String    @id @default(cuid())
+  userId    String
+  animeId   Int?
+  eventType EventType
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([eventType])
+}
+
+enum EventType {
+  PAGE_VIEW
+  VIEW_ANIME
+  CARD_CLICK
+  SEARCH
+  WATCHLIST_ADD
+  WATCHLIST_REMOVE
+  START_ANIME
+  COMPLETE_ANIME
+  DROP_ANIME
+  RATE_ANIME
+  LIKE_ANIME
+  DISLIKE_ANIME
+  FILTER_GENRE
+  SELECT_MOOD
+  OPEN_SIMILAR
+  RECOMMENDATION_CLICK
+  RECOMMENDATION_DISMISS
+  ONBOARDING_COMPLETE
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  query     String
+  filters   Json?
+  results   Int?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ========== EXPERIMENTS ==========
+
+model RecommendationExperiment {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  weights     Json                          // { content: 0.3, collaborative: 0.3, ... }
+  isActive    Boolean  @default(false)
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime @default(now())
+}
