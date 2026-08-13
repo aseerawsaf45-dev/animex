@@ -16,7 +16,7 @@ interface Particle {
 }
 
 export function SakuraParticles({
-  count = 25,
+  count = 15,
   isFixed = false,
   className = "",
 }: {
@@ -34,7 +34,7 @@ export function SakuraParticles({
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let animationFrameId: number;
@@ -47,48 +47,54 @@ export function SakuraParticles({
       height = canvas.height = isFixed ? window.innerHeight : canvas.parentElement?.clientHeight || window.innerHeight;
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
 
-    // Initialize Sakura Petals & Red/White Dust
+    // Initialize particles with reduced count
     const particles: Particle[] = Array.from({ length: count }).map(() => ({
       x: Math.random() * width,
       y: Math.random() * height,
       size: Math.random() * 6 + 3,
-      speedX: Math.random() * 0.8 - 0.4 + 0.3, // Mild rightward wind
-      speedY: Math.random() * 0.7 + 0.3,       // Slow downward drift
+      speedX: Math.random() * 0.6 - 0.3 + 0.2,
+      speedY: Math.random() * 0.5 + 0.2,
       rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.02,
-      opacity: Math.random() * 0.5 + 0.2,
+      rotSpeed: (Math.random() - 0.5) * 0.015,
+      opacity: Math.random() * 0.4 + 0.15,
       color: Math.random() > 0.4 ? "rgba(211,47,47," : Math.random() > 0.5 ? "rgba(250,248,243," : "rgba(255,182,193,",
       type: Math.random() > 0.3 ? "petal" : "dust",
     }));
 
     let time = 0;
+    let lastFrame = 0;
+    const TARGET_FPS = 30; // Cap at 30fps — sakura petals don't need 60fps
+    const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
-    const render = () => {
+    const render = (timestamp: number) => {
+      animationFrameId = requestAnimationFrame(render);
+
+      const delta = timestamp - lastFrame;
+      if (delta < FRAME_INTERVAL) return;
+      lastFrame = timestamp - (delta % FRAME_INTERVAL);
+
       time += 0.01;
       ctx.clearRect(0, 0, width, height);
 
-      particles.forEach((p) => {
-        p.x += p.speedX + Math.sin(time + p.y * 0.005) * 0.4;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.speedX + Math.sin(time + p.y * 0.005) * 0.3;
         p.y += p.speedY;
         p.rotation += p.rotSpeed;
 
-        // Wrap around boundaries smoothly
         if (p.y > height + 20) {
           p.y = -20;
           p.x = Math.random() * width;
         }
-        if (p.x > width + 20) {
-          p.x = -20;
-        }
+        if (p.x > width + 20) p.x = -20;
 
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
 
         if (p.type === "petal") {
-          // Draw subtle organic Sakura petal shape
           ctx.beginPath();
           ctx.moveTo(0, 0);
           ctx.bezierCurveTo(p.size, -p.size, p.size * 1.5, p.size, 0, p.size * 1.8);
@@ -96,7 +102,6 @@ export function SakuraParticles({
           ctx.fillStyle = `${p.color}${p.opacity})`;
           ctx.fill();
         } else {
-          // Draw tiny floating dust/ember particle
           ctx.beginPath();
           ctx.arc(0, 0, p.size * 0.35, 0, Math.PI * 2);
           ctx.fillStyle = `${p.color}${p.opacity * 0.8})`;
@@ -104,12 +109,10 @@ export function SakuraParticles({
         }
 
         ctx.restore();
-      });
-
-      animationFrameId = requestAnimationFrame(render);
+      }
     };
 
-    render();
+    animationFrameId = requestAnimationFrame(render);
 
     return () => {
       window.removeEventListener("resize", handleResize);

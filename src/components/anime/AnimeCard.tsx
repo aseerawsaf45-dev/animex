@@ -94,20 +94,19 @@ export function AnimeCard({
       />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.94, y: 24, filter: "blur(8px)" }}
-        whileInView={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
-        viewport={{ once: true, margin: "-20px" }}
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
         transition={{
-          duration: 0.55,
-          delay: Math.min(index * 0.07, 0.7),
-          ease: EASE_EXPO,
+          duration: 0.35,
+          delay: Math.min(index * 0.04, 0.3),
+          ease: "easeOut",
         }}
-        style={{ rotateX, rotateY, x: magX, y: magY, transformStyle: "preserve-3d", perspective: 900 }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="group relative flex flex-col gap-2.5 cursor-pointer"
-        whileHover={{ y: -8, scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
+        className="group relative flex flex-col gap-2.5 cursor-pointer will-change-transform"
+        whileHover={{ y: -6 }}
+        whileTap={{ scale: 0.98 }}
       >
         <Link href={`/anime/${anime.id}`} className="absolute inset-0 z-20" aria-label={`View ${title}`} />
 
