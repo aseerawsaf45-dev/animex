@@ -14,7 +14,41 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const router = useRouter();
+
+  const handleGuestLogin = async () => {
+    setError("");
+    setGuestLoading(true);
+    try {
+      const res = await fetch("/api/auth/guest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start guest session");
+      }
+
+      const authRes = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (authRes?.error) {
+        throw new Error("Guest sign-in failed. Please try again.");
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during guest sign in");
+    } finally {
+      setGuestLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +228,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || guestLoading}
               className="w-full h-13 rounded-[14px] gradient-vermilion text-white font-label text-xs uppercase tracking-widest shadow-glow hover:opacity-95 transition-opacity flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
             >
               {loading ? (
@@ -208,11 +242,26 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Guest Link */}
+          {/* Guest Link / Action */}
           <div className="text-center mt-8 pt-6 border-t border-white/[0.06]">
-            <Link href="/" className="font-body text-xs text-warm-white/40 hover:text-warm-white transition-colors">
-              Continue exploring as guest →
-            </Link>
+            <button
+              type="button"
+              disabled={loading || guestLoading}
+              onClick={handleGuestLogin}
+              className="font-body text-xs text-warm-white/50 hover:text-warm-white transition-colors inline-flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {guestLoading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-warm-white border-t-transparent rounded-full animate-spin" />
+                  <span>Entering as guest...</span>
+                </>
+              ) : (
+                <>
+                  <span>Continue exploring as guest</span>
+                  <span>→</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
