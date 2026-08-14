@@ -6,13 +6,11 @@ import { verifyPassword } from "@/lib/password";
 declare module "next-auth" {
   interface User {
     role?: string;
-    isGuest?: boolean;
   }
   interface Session {
     user: {
       id?: string;
       role?: string;
-      isGuest?: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -51,7 +49,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-          isGuest: user.isGuest,
         };
       }
     })
@@ -69,7 +66,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role ?? "USER";
-        token.isGuest = user.isGuest ?? false;
       }
       return token;
     },
@@ -77,7 +73,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = (token.role as string) ?? "USER";
-        session.user.isGuest = (token.isGuest as boolean) ?? false;
       }
       return session;
     },
