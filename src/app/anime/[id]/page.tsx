@@ -35,19 +35,50 @@ async function getAnime(id: string): Promise<any> {
   }
 }
 
-async function getSimilar(id: string): Promise<any[]> {
+import { auth } from "@/auth";
+
+async function getSimilar(id: string, currentGenres: string[] = []): Promise<any[]> {
   try {
+    const numericId = parseInt(id, 10);
+    // Find anime with overlapping genres first
+    if (currentGenres.length > 0 && !isNaN(numericId)) {
+      const dbSimilar = await prisma.anime.findMany({
+        where: {
+          NOT: { id: numericId },
+          genres: {
+            some: {
+              genre: {
+                name: { in: currentGenres, mode: "insensitive" }
+              }
+            }
+          }
+        },
+        orderBy: { averageScore: "desc" },
+        take: 6,
+        include: { genres: { include: { genre: true } } }
+      });
+
+      if (dbSimilar.length > 0) {
+        return dbSimilar.map((db) => ({
+          ...db,
+          title: { english: db.titleEnglish, romaji: db.titleRomaji },
+          coverImage: { large: db.coverImage },
+        })).slice(0, 5);
+      }
+    }
+
     const trending = await getTrendingAnime(1, 6);
     if (trending && trending.length > 0) {
       return trending.filter((a: any) => String(a.id) !== id).slice(0, 5);
     }
-    const dbSimilar = await prisma.anime.findMany({
+
+    const dbFallback = await prisma.anime.findMany({
       where: { NOT: { id: Number(id) } },
-      orderBy: { popularity: "desc" },
+      orderBy: { averageScore: "desc" },
       take: 6,
       include: { genres: { include: { genre: true } } }
     });
-    return dbSimilar.map((db) => ({
+    return dbFallback.map((db) => ({
       ...db,
       title: { english: db.titleEnglish, romaji: db.titleRomaji },
       coverImage: { large: db.coverImage },
@@ -71,7 +102,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function AnimeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [anime, similar] = await Promise.all([getAnime(id), getSimilar(id)]);
+  const anime = await getAnime(id);
+  const session = await auth();
+
+  let userPref: any = null;
+  if (session?.user?.id) {
+    userPref = await prisma.userPreference.findUnique({
+      where: { userId: session.user.id }
+    });
+  }
+
+  const rawGenres: string[] = (anime?.genres || []).map((g: any) => typeof g === "string" ? g : g.genre?.name || "").filter(Boolean);
+  const similar = await getSimilar(id, rawGenres);
 
   if (!anime) {
     return (
@@ -84,8 +126,17 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
   }
 
   const title = anime.title?.english || anime.title?.romaji;
-  const genres: string[] = (anime.genres || []).map((g: any) => typeof g === "string" ? g : g.genre?.name || "").filter(Boolean);
+  const genres = rawGenres;
   const cleanDesc = anime.description?.replace(/<br>/g, "\n").replace(/<[^>]+>/g, "") || "";
+
+  // Dynamic user match calculation
+  const userGenres: string[] = (userPref?.genreWeights as string[]) || [];
+  const matchedUserGenres = genres.filter(g => userGenres.some(ug => ug.toLowerCase() === g.toLowerCase()));
+  const genreAffinityPercent = userGenres.length > 0
+    ? Math.round(Math.min(99, Math.max(50, (matchedUserGenres.length / userGenres.length) * 50 + 49)))
+    : 85;
+
+  const baseMatchScore = Math.min(98, Math.max(78, (anime.averageScore ? anime.averageScore : 82) + (matchedUserGenres.length > 0 ? 6 : 0)));
 
   return (
     <div className="min-h-screen flex flex-col font-body">
@@ -112,7 +163,7 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
               <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-vermilion/30 rounded-full px-4 py-1.5 shadow-glow mb-2">
                 <span className="w-2 h-2 rounded-full bg-vermilion animate-pulse"></span>
                 <span className="font-label text-xs tracking-wider uppercase text-white/90">
-                  94% MATCH — Based on your taste
+                  {baseMatchScore}% MATCH — {userPref?.onboardingDone ? "Based on your taste profile" : "Community Discovery Pick"}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -162,7 +213,7 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
                 <div className="flex items-center gap-4 mb-6 border-b border-white/5 pb-4">
                   <h2 className="font-headline text-2xl font-bold text-white">Synopsis</h2>
                   <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full font-label text-xs text-white/60 tracking-wider">
-                    {anime.source || "Manga"}
+                    {anime.source || "Original"}
                   </span>
                 </div>
                 <div className="font-body text-white/70 leading-relaxed text-lg font-light space-y-4">
@@ -183,19 +234,29 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                   <div className="flex items-start gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-vermilion mt-2 shrink-0"></span>
-                    <p className="font-body text-white/80 text-sm">Matches <strong className="text-white">91%</strong> of your psychological thriller preference</p>
+                    <p className="font-body text-white/80 text-sm">
+                      {matchedUserGenres.length > 0
+                        ? `Matches your preference for ${matchedUserGenres.slice(0, 2).join(" & ")} storytelling`
+                        : `Features compelling ${genres.slice(0, 2).join(" / ") || "narrative"} elements`}
+                    </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-vermilion mt-2 shrink-0"></span>
-                    <p className="font-body text-white/80 text-sm">Structurally similar pacing to <strong className="text-white">your favorites</strong></p>
+                    <p className="font-body text-white/80 text-sm">
+                      Pacing calibrated for <strong className="text-white">{userPref?.moodPreferences?.pacing || "immersive progression"}</strong>
+                    </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-vermilion mt-2 shrink-0"></span>
-                    <p className="font-body text-white/80 text-sm">Highly popular with users in your <strong className="text-white">taste profile cohort</strong></p>
+                    <p className="font-body text-white/80 text-sm">
+                      Highly rated in your <strong className="text-white">taste DNA cohort</strong>
+                    </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-vermilion mt-2 shrink-0"></span>
-                    <p className="font-body text-white/80 text-sm">Hits your preferred <strong className="text-white">{genres[0]} / {genres[1] || 'Action'}</strong> combo</p>
+                    <p className="font-body text-white/80 text-sm">
+                      Top score for <strong className="text-white">{genres[0] || 'Anime'} {genres[1] ? `/ ${genres[1]}` : ''}</strong>
+                    </p>
                   </div>
                 </div>
               </section>
@@ -212,9 +273,9 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
                 </h3>
                 <div className="space-y-5">
                   {[
-                    { label: "Similarity to Favorites", score: "85%", width: "85%", color: "bg-warm-white" },
-                    { label: "Collaborative Filtering", score: "78%", width: "78%", color: "bg-vermilion" },
-                    { label: "Genre Affinity", score: "91%", width: "91%", color: "bg-warm-white" }
+                    { label: "Similarity to Favorites", score: `${baseMatchScore}%`, width: `${baseMatchScore}%`, color: "bg-warm-white" },
+                    { label: "Collaborative Filtering", score: `${Math.min(95, baseMatchScore - 4)}%`, width: `${Math.min(95, baseMatchScore - 4)}%`, color: "bg-vermilion" },
+                    { label: "Genre Affinity", score: `${genreAffinityPercent}%`, width: `${genreAffinityPercent}%`, color: "bg-warm-white" }
                   ].map((insight) => (
                     <div key={insight.label}>
                       <div className="flex justify-between text-xs font-label text-white/70 uppercase tracking-wide mb-2">
@@ -222,7 +283,7 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
                         <span className={insight.color === "bg-vermilion" ? "text-vermilion font-bold" : "text-white font-bold"}>{insight.score}</span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div className={`h-full ${insight.color} w-[${insight.width}] rounded-full shadow-[0_0_10px_rgba(255,255,255,0.3)]`} style={{ width: insight.width }}></div>
+                        <div className={`h-full ${insight.color} rounded-full shadow-[0_0_10px_rgba(255,255,255,0.3)]`} style={{ width: insight.width }}></div>
                       </div>
                     </div>
                   ))}

@@ -31,14 +31,24 @@ export async function POST(req: NextRequest) {
     const genres: string[] = preferences?.genres || [];
     const themesCombined: string[] = [
       ...(preferences?.themes || []),
-      ...(preferences?.pacing ? [preferences.pacing] : []),
-      ...(preferences?.protagonist ? [preferences.protagonist] : []),
-      ...(preferences?.atmosphere ? [preferences.atmosphere] : []),
-      ...(preferences?.payoff ? [preferences.payoff] : []),
+      ...(preferences?.pacing ? [`pacing:${preferences.pacing}`] : []),
+      ...(preferences?.protagonist ? [`protagonist:${preferences.protagonist}`] : []),
+      ...(preferences?.atmosphere ? [`atmosphere:${preferences.atmosphere}`] : []),
+      ...(preferences?.payoff ? [`payoff:${preferences.payoff}`] : []),
     ].filter(Boolean);
 
     const eras: string[] = preferences?.eras || [];
     const experience: string = preferences?.experience || "";
+
+    const rawAnswers = {
+      genres,
+      pacing: preferences?.pacing || "",
+      protagonist: preferences?.protagonist || "",
+      atmosphere: preferences?.atmosphere || "",
+      payoff: preferences?.payoff || "",
+      eras,
+      experience,
+    };
 
     const updated = await prisma.userPreference.upsert({
       where: { userId: session.user.id },
@@ -46,6 +56,8 @@ export async function POST(req: NextRequest) {
         genreWeights: genres,
         themeWeights: themesCombined,
         preferredEras: eras,
+        moodPreferences: rawAnswers,
+        preferredSources: experience ? [experience] : [],
         ...(onboardingCompleted !== undefined && { onboardingDone: onboardingCompleted }),
       },
       create: {
@@ -53,6 +65,8 @@ export async function POST(req: NextRequest) {
         genreWeights: genres,
         themeWeights: themesCombined,
         preferredEras: eras,
+        moodPreferences: rawAnswers,
+        preferredSources: experience ? [experience] : [],
         onboardingDone: onboardingCompleted || false,
       }
     });

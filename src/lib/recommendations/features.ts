@@ -33,10 +33,31 @@ function calculateTimeDecay(eventDate: Date): number {
   return Math.pow(0.5, ageInDays / halfLife);
 }
 
+export interface UserPreferenceData {
+  genres: string[];
+  pacing?: string;
+  protagonist?: string;
+  atmosphere?: string;
+  payoff?: string;
+  eras: string[];
+  experience?: string;
+}
+
+export interface UserProfile {
+  genrePreferences: Record<string, number>;
+  themePreferences: Record<string, number>;
+  interactedAnimeIds: number[];
+  dislikedAnimeIds: number[];
+  onboardingPreferences?: UserPreferenceData;
+}
+
 /**
- * Extracts a dynamic user preference vector from their interaction history.
+ * Extracts a dynamic user preference vector from their interaction history and onboarding answers.
  */
-export function buildUserPreferenceProfile(events: UserEvent[]) {
+export function buildUserPreferenceProfile(
+  events: UserEvent[],
+  userPreferenceRecord?: any
+): UserProfile {
   const genrePreferences: Record<string, number> = {};
   const themePreferences: Record<string, number> = {};
   const interactedAnimeIds = new Set<number>();
@@ -64,44 +85,87 @@ export function buildUserPreferenceProfile(events: UserEvent[]) {
 
     const decay = calculateTimeDecay(event.createdAt);
     const finalImpact = actualWeight * decay;
+  }
 
-    // In a real ML pipeline, we would fetch the genres/themes of the anime here
-    // and distribute the finalImpact across those features.
-    // For MVP, we will assume this is handled dynamically during candidate ranking.
+  // Parse structured onboarding preferences
+  let onboardingPreferences: UserPreferenceData | undefined;
+  if (userPreferenceRecord) {
+    const rawAnswers = userPreferenceRecord.moodPreferences as any;
+    const genreWeights = (userPreferenceRecord.genreWeights as string[]) || [];
+    const eras = (userPreferenceRecord.preferredEras as string[]) || [];
+    const rawThemes = (userPreferenceRecord.themeWeights as string[]) || [];
+
+    // Extract answered dimensions
+    let pacing = rawAnswers?.pacing || "";
+    let protagonist = rawAnswers?.protagonist || "";
+    let atmosphere = rawAnswers?.atmosphere || "";
+    let payoff = rawAnswers?.payoff || "";
+    let experience = rawAnswers?.experience || (userPreferenceRecord.preferredSources?.[0] || "");
+
+    if (!pacing) {
+      const pTheme = rawThemes.find((t: string) => t.startsWith("pacing:"));
+      if (pTheme) pacing = pTheme.replace("pacing:", "");
+    }
+    if (!protagonist) {
+      const prTheme = rawThemes.find((t: string) => t.startsWith("protagonist:"));
+      if (prTheme) protagonist = prTheme.replace("protagonist:", "");
+    }
+    if (!atmosphere) {
+      const atTheme = rawThemes.find((t: string) => t.startsWith("atmosphere:"));
+      if (atTheme) atmosphere = atTheme.replace("atmosphere:", "");
+    }
+    if (!payoff) {
+      const pyTheme = rawThemes.find((t: string) => t.startsWith("payoff:"));
+      if (pyTheme) payoff = pyTheme.replace("payoff:", "");
+    }
+
+    onboardingPreferences = {
+      genres: genreWeights.length > 0 ? genreWeights : (rawAnswers?.genres || []),
+      pacing,
+      protagonist,
+      atmosphere,
+      payoff,
+      eras: eras.length > 0 ? eras : (rawAnswers?.eras || []),
+      experience,
+    };
+
+    // Seed genre preferences directly from onboarding choices
+    for (const g of onboardingPreferences.genres) {
+      genrePreferences[g] = (genrePreferences[g] || 0) + 1.0;
+    }
   }
 
   return {
     genrePreferences,
     themePreferences,
     interactedAnimeIds: Array.from(interactedAnimeIds),
-    dislikedAnimeIds: Array.from(dislikedAnimeIds)
+    dislikedAnimeIds: Array.from(dislikedAnimeIds),
+    onboardingPreferences,
   };
 }
 
 /**
  * Encodes an anime into a structured feature vector.
- * For MVP, we use a simple dummy array representing multi-hot encodings.
- * In production, this integrates with SentenceTransformers/FastAPI.
+ * For MVP, we use a simple multi-hot encoding with metadata normalization.
  */
 export function encodeAnimeFeatures(
   anime: Anime & { genres: { genre: Genre }[]; themes: { theme: Theme }[] }
 ): number[] {
-  // Dummy 384-dimensional vector to match pgvector(384)
   const vector = new Array(384).fill(0);
   
-  // Hash genres to slots
-  anime.genres.forEach((ag, idx) => {
+  // Hash genres to slots (0 - 99)
+  anime.genres.forEach((ag) => {
     const slot = ag.genre.id % 100;
-    vector[slot] = 1;
+    vector[slot] = 1.0;
   });
 
-  // Hash themes to slots
-  anime.themes.forEach((at, idx) => {
+  // Hash themes to slots (100 - 199)
+  anime.themes.forEach((at) => {
     const slot = 100 + (at.theme.id % 100);
-    vector[slot] = 1;
+    vector[slot] = 1.0;
   });
 
-  // Normalize metadata (50/50 Blend of Jikan and AniList scores)
+  // Normalize metadata
   const aniScore = anime.averageScore ? anime.averageScore / 100 : null;
   const malScoreNormalized = anime.malScore ? anime.malScore / 10 : null;
   
@@ -122,7 +186,7 @@ export function encodeAnimeFeatures(
 }
 
 /**
- * Synthesizes a cold-start feature vector directly from onboarding answers.
+ * Synthesizes a feature vector directly from onboarding answers.
  */
 export async function buildSynthesizedVector(
   selectedGenres: string[],
@@ -141,9 +205,11 @@ export async function buildSynthesizedVector(
     });
   }
 
-  if (selectedThemes && selectedThemes.length > 0) {
+  // Clean and query themes
+  const cleanThemes = selectedThemes.map(t => t.replace(/^(pacing|protagonist|atmosphere|payoff):/, ""));
+  if (cleanThemes.length > 0) {
     const dbThemes = await prisma.theme.findMany({
-      where: { name: { in: selectedThemes, mode: "insensitive" } }
+      where: { name: { in: cleanThemes, mode: "insensitive" } }
     });
     dbThemes.forEach((t: any) => {
       const slot = 100 + (t.id % 100);
@@ -151,7 +217,7 @@ export async function buildSynthesizedVector(
     });
   }
 
-  vector[200] = 0.8;
+  vector[200] = 0.85;
   vector[201] = 0.5;
 
   return vector;

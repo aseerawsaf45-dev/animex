@@ -125,7 +125,85 @@ export async function generateCandidates(
     console.error("Vector retrieval failed, falling back", err);
   }
 
-  // 2. Fetch Popular / Trending (Exploration & Baselines)
+  // 2. Fetch Genre & Questionnaire Matched Candidates directly from DB
+  try {
+    const userPref = await prisma.userPreference.findUnique({
+      where: { userId },
+    });
+
+    const genres: string[] = (userPref?.genreWeights as string[]) || [];
+    const eras: string[] = (userPref?.preferredEras as string[]) || [];
+
+    if (genres.length > 0) {
+      // Find anime with matching genres directly
+      const genreMatchedAnime = await prisma.anime.findMany({
+        where: {
+          status: { in: ["RELEASING", "FINISHED"] },
+          NOT: { id: { in: excludeIds } },
+          genres: {
+            some: {
+              genre: {
+                name: { in: genres, mode: "insensitive" }
+              }
+            }
+          }
+        },
+        include: {
+          genres: { include: { genre: true } },
+          themes: { include: { theme: true } },
+        },
+        orderBy: { averageScore: "desc" },
+        take: Math.floor(limit * 0.5),
+      });
+
+      genreMatchedAnime.forEach((anime) => {
+        if (!candidatesMap.has(anime.id)) {
+          // Calculate direct overlap similarity
+          const animeGenres = anime.genres.map(g => g.genre.name.toLowerCase());
+          const matchedCount = genres.filter(g => animeGenres.includes(g.toLowerCase())).length;
+          const sim = 0.6 + (matchedCount / Math.max(genres.length, 1)) * 0.35;
+          candidatesMap.set(anime.id, { ...anime, _source: "genre_match", _similarity: sim });
+        }
+      });
+    }
+
+    // If eras are preferred, fetch high-scoring anime from those eras
+    if (eras.length > 0) {
+      const eraYears: { gte?: Date, lte?: Date }[] = [];
+      eras.forEach(e => {
+        if (e.includes("90s")) eraYears.push({ lte: new Date("1999-12-31") });
+        if (e.includes("2000s")) eraYears.push({ gte: new Date("2000-01-01"), lte: new Date("2009-12-31") });
+        if (e.includes("2010s")) eraYears.push({ gte: new Date("2010-01-01"), lte: new Date("2019-12-31") });
+        if (e.includes("2020s")) eraYears.push({ gte: new Date("2020-01-01") });
+      });
+
+      if (eraYears.length > 0) {
+        const eraMatchedAnime = await prisma.anime.findMany({
+          where: {
+            status: { in: ["RELEASING", "FINISHED"] },
+            NOT: { id: { in: excludeIds } },
+            OR: eraYears.map(y => ({ startDate: y })),
+          },
+          include: {
+            genres: { include: { genre: true } },
+            themes: { include: { theme: true } },
+          },
+          orderBy: { averageScore: "desc" },
+          take: Math.floor(limit * 0.25),
+        });
+
+        eraMatchedAnime.forEach((anime) => {
+          if (!candidatesMap.has(anime.id)) {
+            candidatesMap.set(anime.id, { ...anime, _source: "era_match", _similarity: 0.7 });
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Genre & Era candidate retrieval error:", err);
+  }
+
+  // 3. Fetch Popular / Highly Rated (Exploration & Baselines)
   const popularCandidates = await prisma.anime.findMany({
     where: {
       status: { in: ["RELEASING", "FINISHED"] },
@@ -135,17 +213,17 @@ export async function generateCandidates(
       genres: { include: { genre: true } },
       themes: { include: { theme: true } },
     },
-    orderBy: { popularity: "desc" },
-    take: Math.floor(limit * 0.4),
+    orderBy: { averageScore: "desc" },
+    take: Math.floor(limit * 0.3),
   });
 
   popularCandidates.forEach((anime) => {
     if (!candidatesMap.has(anime.id)) {
-      candidatesMap.set(anime.id, { ...anime, _source: "popularity" });
+      candidatesMap.set(anime.id, { ...anime, _source: "high_rated", _similarity: 0.4 });
     }
   });
 
-  // 3. Seasonal Releases
+  // 4. Seasonal Releases
   const recentCandidates = await prisma.anime.findMany({
     where: {
       status: "RELEASING",
@@ -161,7 +239,7 @@ export async function generateCandidates(
 
   recentCandidates.forEach((anime) => {
     if (!candidatesMap.has(anime.id)) {
-      candidatesMap.set(anime.id, { ...anime, _source: "seasonal" });
+      candidatesMap.set(anime.id, { ...anime, _source: "seasonal", _similarity: 0.35 });
     }
   });
 

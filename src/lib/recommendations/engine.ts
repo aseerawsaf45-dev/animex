@@ -28,15 +28,20 @@ export async function generateHybridRecommendations(
   limit: number = 20
 ): Promise<RecommendationResult[]> {
   try {
-    // 1. Fetch User Event History
-    const events = await prisma.userEvent.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
+    // 1. Fetch User Event History and Preferences
+    const [events, userPref] = await Promise.all([
+      prisma.userEvent.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      }),
+      prisma.userPreference.findUnique({
+        where: { userId },
+      }),
+    ]);
 
-    // 2. Feature Engineering
-    const userProfile = buildUserPreferenceProfile(events);
+    // 2. Feature Engineering with User Preferences
+    const userProfile = buildUserPreferenceProfile(events, userPref);
 
     // 3. Candidate Generation
     const candidates = await generateCandidates(
