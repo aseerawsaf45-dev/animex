@@ -7,8 +7,15 @@ export const proxy = auth((req) => {
   const isAuthRoute = pathname.startsWith("/login");
   const isPublicAsset = pathname.startsWith("/api") || pathname.startsWith("/_next") || pathname.includes(".");
 
-  // 1. If unauthenticated user loads site (/ or /recommendations or /onboarding), send to /login first
-  if (!isLoggedIn && !isAuthRoute && !isPublicAsset) {
+  // Protected routes that strictly require an authenticated user
+  const isProtectedRoute =
+    pathname.startsWith("/watchlist") ||
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/admin");
+
+  // 1. If unauthenticated user tries to access protected areas, redirect to /login
+  if (!isLoggedIn && isProtectedRoute && !isPublicAsset) {
     let from = pathname;
     if (req.nextUrl.search) {
       from += req.nextUrl.search;
@@ -16,9 +23,9 @@ export const proxy = auth((req) => {
     return Response.redirect(new URL(`/login?from=${encodeURIComponent(from)}`, req.nextUrl));
   }
 
-  // 2. If authenticated user lands on /login, send to /onboarding
+  // 2. If authenticated user lands on /login, send them to /discover or /onboarding
   if (isAuthRoute && isLoggedIn) {
-    return Response.redirect(new URL("/onboarding", req.nextUrl));
+    return Response.redirect(new URL("/discover", req.nextUrl));
   }
 });
 
