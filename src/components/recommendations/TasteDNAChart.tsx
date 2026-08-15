@@ -2,18 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Dna, Activity, ArrowRight } from "lucide-react";
+import { Sparkles, Dna, Activity, ArrowRight, ShieldAlert, Zap, Flame, Compass, Brain, Edit3, Target, Radio } from "lucide-react";
 import { EASE_EXPO } from "@/lib/motion";
 import Link from "next/link";
-
-interface Dimension {
-  label: string;
-  value: number; // 0 to 100
-  angle: number;
-}
-
 import { EditTasteDNAModal } from "./EditTasteDNAModal";
-import { SlidersHorizontal, Edit3 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface StatDimension {
+  statKey: string;
+  nameEn: string;
+  nameJp: string;
+  icon: any;
+  value: number; // 0 - 100
+  angle: number;
+  grade: string;
+  description: string;
+}
 
 export function TasteDNAChart({
   userPref,
@@ -25,13 +29,12 @@ export function TasteDNAChart({
   showEditButton?: boolean;
 }) {
   const [pref, setPref] = useState<any>(userPref || null);
-  const [loading, setLoading] = useState(!userPref);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (userPref) {
       setPref(userPref);
-      setLoading(false);
       return;
     }
 
@@ -43,72 +46,119 @@ export function TasteDNAChart({
           setPref(data.data);
         }
       })
-      .catch(() => {})
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+      .catch(() => {});
 
     return () => {
       isMounted = false;
     };
   }, [userPref]);
 
-  // Calculate real-time Taste DNA percentages based directly on User Onboarding Answers
-  const calculateDNA = (): Dimension[] => {
+  // Calculate precise 6-axis Anime Telemetry Stats (Combat Power, Mind Games, Worldcraft, Lore, Emotional Weight, Hype Factor)
+  const calculateAnimeMatrix = (): StatDimension[] => {
     if (!pref || !pref.onboardingDone) {
       return [
-        { label: "Psychological", value: 50, angle: -90 },
-        { label: "Action", value: 50, angle: -18 },
-        { label: "Romance", value: 50, angle: 54 },
-        { label: "Fantasy", value: 50, angle: 126 },
-        { label: "Drama", value: 50, angle: 198 },
+        { statKey: "action", nameEn: "Sakuga / Combat", nameJp: "戦闘力", icon: Flame, value: 50, angle: -90, grade: "B", description: "Battle intensity & choreography" },
+        { statKey: "psych", nameEn: "Mind Games / IQ", nameJp: "頭脳戦", icon: Brain, value: 50, angle: -30, grade: "B", description: "Psychological tension & stratagems" },
+        { statKey: "world", nameEn: "Worldbuild / Sci-Fi", nameJp: "世界観", icon: Compass, value: 50, angle: 30, grade: "B", description: "Mythology, kingdoms & technology" },
+        { statKey: "drama", nameEn: "Emotional Weight", nameJp: "感情値", icon: Activity, value: 50, angle: 90, grade: "B", description: "Character relationships & catharsis" },
+        { statKey: "fantasy", nameEn: "Magic / Supernatural", nameJp: "異能力", icon: Zap, value: 50, angle: 150, grade: "B", description: "Power systems & mythical creatures" },
+        { statKey: "hype", nameEn: "Hype / Climaxes", nameJp: "爆発力", icon: Target, value: 50, angle: 210, grade: "B", description: "Finale payoffs & adrenaline spikes" },
       ];
     }
 
-    const genres: string[] = (pref.genreWeights as string[]) || [];
+    const rawAnswers = pref.moodPreferences || {};
+    const genres: string[] = (pref.genreWeights as string[]) || rawAnswers.genres || [];
     const themes: string[] = (pref.themeWeights as string[]) || [];
+    const pacing = rawAnswers.pacing || "";
+    const protagonist = rawAnswers.protagonist || "";
+    const atmosphere = rawAnswers.atmosphere || "";
+    const payoff = rawAnswers.payoff || "";
 
-    let psychScore = 40;
-    let actionScore = 40;
-    let romanceScore = 40;
-    let fantasyScore = 40;
+    let combatScore = 40;
+    let mindScore = 40;
+    let worldScore = 40;
     let dramaScore = 40;
+    let magicScore = 40;
+    let hypeScore = 40;
 
-    // Genre Weighting
-    if (genres.includes("Psychological") || genres.includes("Mystery") || genres.includes("Thriller")) psychScore += 35;
-    if (genres.includes("Action") || genres.includes("Sports") || genres.includes("Adventure")) actionScore += 35;
-    if (genres.includes("Romance") || genres.includes("Slice of Life") || genres.includes("Comedy")) romanceScore += 35;
-    if (genres.includes("Fantasy") || genres.includes("Sci-Fi") || genres.includes("Supernatural")) fantasyScore += 35;
-    if (genres.includes("Drama") || genres.includes("Horror")) dramaScore += 35;
-
-    // Theme & Questionnaire Weighting (pacing, protagonist, atmosphere, payoff)
-    themes.forEach((t) => {
-      if (t === "slow-burn" || t === "pacing:slow-burn" || t === "strategist" || t === "protagonist:strategist" || t === "twists" || t === "payoff:twists") psychScore += 20;
-      if (t === "fast" || t === "pacing:fast" || t === "underdog" || t === "protagonist:underdog" || t === "anti-hero" || t === "protagonist:anti-hero" || t === "hype" || t === "payoff:hype") actionScore += 20;
-      if (t === "cozy" || t === "atmosphere:cozy" || t === "relatable" || t === "protagonist:relatable" || t === "peace" || t === "payoff:peace") romanceScore += 20;
-      if (t === "cyberpunk" || t === "atmosphere:cyberpunk" || t === "fantasy" || t === "atmosphere:fantasy" || t === "episodic" || t === "pacing:episodic") fantasyScore += 20;
-      if (t === "character-drama" || t === "pacing:character-drama" || t === "military" || t === "atmosphere:military" || t === "tears" || t === "payoff:tears") dramaScore += 20;
+    // 1. Genre Calibrations
+    genres.forEach((g) => {
+      const gl = g.toLowerCase();
+      if (gl === "action" || gl === "sports") { combatScore += 25; hypeScore += 20; }
+      if (gl === "psychological" || gl === "mystery" || gl === "thriller") { mindScore += 30; }
+      if (gl === "sci-fi" || gl === "adventure") { worldScore += 25; }
+      if (gl === "drama" || gl === "romance" || gl === "slice of life") { dramaScore += 30; }
+      if (gl === "fantasy" || gl === "supernatural") { magicScore += 30; worldScore += 15; }
+      if (gl === "horror") { mindScore += 15; dramaScore += 15; }
     });
 
+    // 2. Narrative Dimension Tuning
+    if (pacing === "fast") { combatScore += 15; hypeScore += 25; }
+    if (pacing === "slow-burn") { mindScore += 25; worldScore += 15; }
+    if (pacing === "character-drama") { dramaScore += 25; }
+    if (pacing === "episodic") { worldScore += 20; }
+
+    if (protagonist === "strategist") { mindScore += 30; }
+    if (protagonist === "underdog") { combatScore += 20; hypeScore += 20; }
+    if (protagonist === "anti-hero") { mindScore += 20; combatScore += 15; }
+    if (protagonist === "relatable") { dramaScore += 20; }
+
+    if (atmosphere === "cyberpunk") { worldScore += 25; mindScore += 15; }
+    if (atmosphere === "fantasy") { magicScore += 30; worldScore += 20; }
+    if (atmosphere === "military") { combatScore += 20; mindScore += 20; }
+    if (atmosphere === "cozy") { dramaScore += 20; }
+
+    if (payoff === "twists") { mindScore += 25; hypeScore += 15; }
+    if (payoff === "tears") { dramaScore += 30; }
+    if (payoff === "hype") { hypeScore += 30; combatScore += 20; }
+    if (payoff === "peace") { dramaScore += 15; }
+
+    const clamp = (v: number) => Math.min(99, Math.max(35, v));
+    const toGrade = (val: number) => {
+      if (val >= 90) return "S+";
+      if (val >= 80) return "S";
+      if (val >= 70) return "A";
+      if (val >= 55) return "B";
+      return "C";
+    };
+
+    const finalCombat = clamp(combatScore);
+    const finalMind = clamp(mindScore);
+    const finalWorld = clamp(worldScore);
+    const finalDrama = clamp(dramaScore);
+    const finalMagic = clamp(magicScore);
+    const finalHype = clamp(hypeScore);
+
     return [
-      { label: "Psychological", value: Math.min(98, Math.max(30, psychScore)), angle: -90 },
-      { label: "Action", value: Math.min(98, Math.max(30, actionScore)), angle: -18 },
-      { label: "Romance", value: Math.min(98, Math.max(30, romanceScore)), angle: 54 },
-      { label: "Fantasy", value: Math.min(98, Math.max(30, fantasyScore)), angle: 126 },
-      { label: "Drama", value: Math.min(98, Math.max(30, dramaScore)), angle: 198 },
+      { statKey: "action", nameEn: "Sakuga / Combat", nameJp: "戦闘力", icon: Flame, value: finalCombat, angle: -90, grade: toGrade(finalCombat), description: "High-octane choreography & battle energy" },
+      { statKey: "psych", nameEn: "Mind Games / IQ", nameJp: "頭脳戦", icon: Brain, value: finalMind, angle: -30, grade: toGrade(finalMind), description: "Psychological tension, twists & 4D chess" },
+      { statKey: "world", nameEn: "Worldbuild / Sci-Fi", nameJp: "世界観", icon: Compass, value: finalWorld, angle: 30, grade: toGrade(finalWorld), description: "Immersive lore, technology & factions" },
+      { statKey: "drama", nameEn: "Emotional Weight", nameJp: "感情値", icon: Activity, value: finalDrama, angle: 90, grade: toGrade(finalDrama), description: "Character relationships, tears & depth" },
+      { statKey: "fantasy", nameEn: "Magic / Supernatural", nameJp: "異能力", icon: Zap, value: finalMagic, angle: 150, grade: toGrade(finalMagic), description: "Power systems, grimoires & supernatural rules" },
+      { statKey: "hype", nameEn: "Hype / Climaxes", nameJp: "爆発力", icon: Target, value: finalHype, angle: 210, grade: toGrade(finalHype), description: "Adrenaline payoff, sakuga peaks & triumph" },
     ];
   };
 
-  const dimensions = calculateDNA();
+  const dimensions = calculateAnimeMatrix();
   const hasProfile = pref && pref.onboardingDone;
 
-  // Determine top preferences for dynamic taste narrative
-  const sortedDims = [...dimensions].sort((a, b) => b.value - a.value);
-  const topText = hasProfile
-    ? `${sortedDims[0].label} (${sortedDims[0].value}%) and ${sortedDims[1].label} (${sortedDims[1].value}%)`
-    : "Not configured yet";
+  // Determine Class / Archetype title
+  const sorted = [...dimensions].sort((a, b) => b.value - a.value);
+  const getArchetype = () => {
+    if (!hasProfile) return "Cadet Observer (Uncalibrated)";
+    const topKey = sorted[0].statKey;
+    const secondKey = sorted[1].statKey;
+    if (topKey === "action" && secondKey === "hype") return "Battle Shonen Vanguard";
+    if (topKey === "psych" || secondKey === "psych") return "Tactical Seinen Mastermind";
+    if (topKey === "world" && secondKey === "fantasy") return "Grand Fantasy Chronicler";
+    if (topKey === "drama") return "High-Emotion Narrative Connoisseur";
+    if (topKey === "fantasy") return "Supernatural Lore Adept";
+    return "Omni-Spectrum Anime Enthusiast";
+  };
 
-  const size = 320;
+  const archetypeTitle = getArchetype();
+
+  const size = 330;
   const center = size / 2;
   const maxRadius = 110;
 
@@ -129,150 +179,243 @@ export function TasteDNAChart({
 
   return (
     <>
-      <div className={`glass rounded-[28px] p-8 border border-white/10 relative overflow-hidden shadow-2xl ${className}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg gradient-vermilion flex items-center justify-center shadow-glow">
-              <Dna className="w-4 h-4 text-white" />
+      <div className={cn("relative rounded-[32px] p-6 sm:p-9 glass-card border border-white/12 shadow-2xl overflow-hidden bg-ink/90 group", className)}>
+        {/* Cyberpunk HUD Grid Accents */}
+        <div className="absolute top-4 left-6 flex items-center gap-1.5 font-mono text-[9px] text-warm-white/30 uppercase tracking-widest select-none pointer-events-none">
+          <span className="w-1.5 h-1.5 rounded-full bg-vermilion animate-pulse" />
+          <span>VECTOR_TELEMETRY // ANMX-DNA</span>
+        </div>
+
+        <div className="absolute top-4 right-6 font-mono text-[9px] text-warm-white/20 uppercase tracking-widest select-none pointer-events-none hidden sm:block">
+          STATUS: {hasProfile ? "SYNC_LOCKED" : "CALIBRATING"}
+        </div>
+
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4 mb-6 border-b border-white/10 pb-6">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl gradient-vermilion flex items-center justify-center text-white shadow-glow shrink-0 border border-white/20">
+              <Dna className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-label text-[10px] text-vermilion uppercase tracking-[0.25em] font-bold block">
-                Calculated Taste Vector
-              </span>
-              <h3 className="font-headline text-2xl font-bold text-warm-white">Your Anime Taste DNA</h3>
+              <div className="flex items-center gap-2">
+                <span className="font-jp text-[10px] text-vermilion tracking-[0.3em] font-bold">
+                  解析完了
+                </span>
+                <span className="text-white/20 text-xs">•</span>
+                <span className="font-mono text-[10px] text-warm-white/40 uppercase tracking-wider">
+                  Taste Vector Matrix
+                </span>
+              </div>
+              <h3 className="font-headline text-2xl sm:text-3xl font-bold text-warm-white tracking-tight">
+                {archetypeTitle}
+              </h3>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
             {showEditButton && (
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="px-3.5 py-1.5 rounded-xl glass border border-vermilion/40 bg-vermilion/10 text-warm-white hover:bg-vermilion/20 hover:border-vermilion transition-all font-label text-[11px] uppercase tracking-wider font-bold shadow-glow flex items-center gap-1.5 group"
+                className="px-4 py-2 rounded-xl gradient-vermilion text-white hover:opacity-90 font-label text-xs uppercase tracking-wider font-bold shadow-glow flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 text-vermilion group-hover:rotate-12 transition-transform" />
-                <span>Edit Taste DNA</span>
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Re-Tune DNA</span>
               </button>
             )}
+          </div>
+        </div>
 
-            <div className="hidden sm:flex px-3 py-1 rounded-full glass border border-white/10 text-[10px] font-label uppercase tracking-widest text-warm-white/60 items-center gap-1.5">
-              <Activity className="w-3 h-3 text-vermilion animate-pulse" />
-              {hasProfile ? "Active Calibration" : "Awaiting Profile"}
+        {/* Radar Matrix & Cyber HUD Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Hexagonal Radar Chart SVG */}
+          <div className="lg:col-span-7 flex flex-col items-center justify-center relative py-2">
+            {/* Ambient Red Core Glow */}
+            <div className="absolute w-44 h-44 bg-vermilion/20 rounded-full blur-2xl pointer-events-none" />
+
+            <svg width={size} height={size} className="overflow-visible select-none">
+              <defs>
+                <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#D32F2F" stopOpacity="0.45" />
+                  <stop offset="80%" stopColor="#D32F2F" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#D32F2F" stopOpacity="0.02" />
+                </radialGradient>
+              </defs>
+
+              {/* Concentric Hexagon Grid Rings */}
+              {[0.25, 0.5, 0.75, 1.0].map((scale, i) => (
+                <polygon
+                  key={i}
+                  points={dimensions
+                    .map((d) => {
+                      const { x, y } = getCoordinates(100 * scale, d.angle);
+                      return `${x},${y}`;
+                    })
+                    .join(" ")}
+                  fill="none"
+                  stroke={i === 3 ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)"}
+                  strokeWidth={i === 3 ? "1.5" : "1"}
+                  strokeDasharray={i === 3 ? "0" : "4 4"}
+                />
+              ))}
+
+              {/* Axis Rays */}
+              {dimensions.map((d, i) => {
+                const { x, y } = getCoordinates(100, d.angle);
+                return (
+                  <line
+                    key={i}
+                    x1={center}
+                    y1={center}
+                    x2={x}
+                    y2={y}
+                    stroke="rgba(255,255,255,0.12)"
+                    strokeWidth="1"
+                  />
+                );
+              })}
+
+              {/* Center Tech Origin Dot */}
+              <circle cx={center} cy={center} r="3" fill="#D32F2F" />
+
+              {/* Dynamic Radar Area */}
+              <motion.polygon
+                points={polygonPoints}
+                fill="url(#radarGlow)"
+                stroke="#D32F2F"
+                strokeWidth="2.5"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 1.0, ease: EASE_EXPO }}
+                style={{
+                  transformOrigin: `${center}px ${center}px`,
+                  filter: "drop-shadow(0 0 14px rgba(211,47,47,0.7))",
+                }}
+              />
+
+              {/* Stat Nodes & Interactive Label Rings */}
+              {dimensions.map((d, i) => {
+                const point = getCoordinates(d.value, d.angle);
+                const labelPoint = getCoordinates(126, d.angle);
+                const isHovered = hoveredIndex === i;
+
+                return (
+                  <g
+                    key={i}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredIndex(i)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                  >
+                    {/* Node Dot */}
+                    <motion.circle
+                      cx={point.x}
+                      cy={point.y}
+                      r={isHovered ? "7" : "4.5"}
+                      fill="#FAF8F3"
+                      stroke="#D32F2F"
+                      strokeWidth="2.5"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.4, delay: 0.2 + i * 0.06 }}
+                      style={{ filter: "drop-shadow(0 0 6px #D32F2F)" }}
+                    />
+
+                    {/* Stat Badge Label */}
+                    <text
+                      x={labelPoint.x}
+                      y={labelPoint.y - 6}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#FAF8F3"
+                      fontSize="10"
+                      className="font-label font-bold uppercase tracking-wider"
+                    >
+                      {d.nameEn.split(" / ")[0]}
+                    </text>
+                    <text
+                      x={labelPoint.x}
+                      y={labelPoint.y + 7}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#D32F2F"
+                      fontSize="9"
+                      className="font-mono font-bold"
+                    >
+                      [{d.grade}] {d.value}%
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Stat Telemetry Breakdown (Anime Style Power Grid) */}
+          <div className="lg:col-span-5 space-y-3">
+            <div className="flex items-center justify-between font-mono text-[10px] text-warm-white/40 border-b border-white/10 pb-2 uppercase tracking-wider">
+              <span>STAT PARAMETER</span>
+              <span>POWER RATING</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {dimensions.map((stat, i) => {
+                const Icon = stat.icon;
+                const isHovered = hoveredIndex === i;
+
+                return (
+                  <div
+                    key={stat.statKey}
+                    onMouseEnter={() => setHoveredIndex(i)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                    className={cn(
+                      "p-2.5 rounded-xl border transition-all duration-200 flex items-center justify-between gap-3",
+                      isHovered
+                        ? "border-vermilion bg-vermilion/15 shadow-glow"
+                        : "border-white/5 bg-white/[0.02] hover:border-white/15"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", isHovered ? "gradient-vermilion text-white" : "bg-white/10 text-warm-white/60")}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="truncate">
+                        <p className="font-label text-xs font-bold text-warm-white flex items-center gap-1.5">
+                          <span>{stat.nameEn}</span>
+                          <span className="font-jp text-[10px] text-warm-white/30 font-normal">{stat.nameJp}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-vermilion/20 border border-vermilion/40 text-vermilion font-bold">
+                        {stat.grade}
+                      </span>
+                      <span className="font-mono text-xs font-bold text-warm-white min-w-[32px] text-right">
+                        {stat.value}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Radar Chart SVG */}
-        <div className="relative flex items-center justify-center my-4">
-          <svg width={size} height={size} className="overflow-visible">
-            {/* Background Concentric Grid Circles */}
-            {[0.3, 0.65, 1.0].map((scale, i) => (
-              <polygon
-                key={i}
-                points={dimensions
-                  .map((d) => {
-                    const { x, y } = getCoordinates(100 * scale, d.angle);
-                    return `${x},${y}`;
-                  })
-                  .join(" ")}
-                fill="none"
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth="1"
-                strokeDasharray={i === 2 ? "0" : "3 3"}
-              />
-            ))}
+        {/* Bottom Narrative Vector Insight */}
+        <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <Radio className="w-4 h-4 text-vermilion shrink-0 mt-0.5 animate-pulse" />
+            <p className="font-body text-xs text-warm-white/70 leading-relaxed">
+              <span className="text-vermilion font-bold uppercase tracking-wider text-[10px] mr-1">Anime Vector Synthesis:</span>
+              Dominant stats in <strong className="text-warm-white">{sorted[0].nameEn} ({sorted[0].value}%)</strong> and <strong className="text-warm-white">{sorted[1].nameEn} ({sorted[1].value}%)</strong>. Recommendations prioritize high-synergy titles in this archetype.
+            </p>
+          </div>
 
-            {/* Radial Axis Lines */}
-            {dimensions.map((d, i) => {
-              const { x, y } = getCoordinates(100, d.angle);
-              return (
-                <line
-                  key={i}
-                  x1={center}
-                  y1={center}
-                  x2={x}
-                  y2={y}
-                  stroke="rgba(255,255,255,0.1)"
-                  strokeWidth="1"
-                />
-              );
-            })}
-
-            {/* Animated Taste Polygon Shape */}
-            <motion.polygon
-              points={polygonPoints}
-              fill={hasProfile ? "rgba(211,47,47,0.28)" : "rgba(255,255,255,0.05)"}
-              stroke={hasProfile ? "#D32F2F" : "rgba(255,255,255,0.3)"}
-              strokeWidth="2.5"
-              strokeDasharray={hasProfile ? "0" : "4 4"}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: EASE_EXPO }}
-              style={{
-                transformOrigin: `${center}px ${center}px`,
-                filter: hasProfile ? "drop-shadow(0 0 16px rgba(211,47,47,0.5))" : "none",
-              }}
-            />
-
-            {/* Dimension Nodes & Labels */}
-            {dimensions.map((d, i) => {
-              const point = getCoordinates(d.value, d.angle);
-              const labelPoint = getCoordinates(122, d.angle);
-
-              return (
-                <g key={i}>
-                  <motion.circle
-                    cx={point.x}
-                    cy={point.y}
-                    r="5"
-                    fill="#FAF8F3"
-                    stroke={hasProfile ? "#D32F2F" : "#ffffff"}
-                    strokeWidth="2"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.4 + i * 0.08 }}
-                  />
-
-                  <text
-                    x={labelPoint.x}
-                    y={labelPoint.y}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="#FAF8F3"
-                    fontSize="11"
-                    className="font-label font-semibold select-none"
-                  >
-                    {d.label} <tspan fill={hasProfile ? "#D32F2F" : "#ffffff"} fontWeight="bold">{d.value}%</tspan>
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Dynamic Taste Evolution Narrative or Onboarding CTA */}
-        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-          {hasProfile ? (
-            <div className="flex items-start gap-3 flex-1">
-              <Sparkles className="w-4 h-4 text-vermilion shrink-0 mt-0.5" />
-              <p className="font-body text-xs text-warm-white/70 leading-relaxed">
-                <span className="text-vermilion font-bold">Taste Insight:</span> Your top preferences calculated from your questionnaire are <span className="text-warm-white font-semibold">{topText}</span>.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
-              <p className="font-body text-xs text-warm-white/60">
-                Complete your questionnaire to calculate your exact 5-axis Taste DNA.
-              </p>
-              <Link
-                href="/onboarding"
-                className="px-4 py-2 rounded-xl gradient-vermilion text-white font-label text-[10px] uppercase tracking-widest font-bold shadow-glow inline-flex items-center gap-1.5 shrink-0"
-              >
-                <span>Build Taste DNA</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          )}
+          <Link
+            href="/recommendations"
+            className="text-xs font-label uppercase tracking-widest text-warm-white/50 hover:text-vermilion flex items-center gap-1 transition-colors shrink-0"
+          >
+            <span>Recalibrate Pool</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
 
@@ -286,3 +429,4 @@ export function TasteDNAChart({
     </>
   );
 }
+

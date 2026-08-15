@@ -166,30 +166,36 @@ export function EditTasteDNAModal({
             transition={{ type: "spring", stiffness: 350, damping: 28 }}
             className="relative w-full max-w-2xl max-h-[88vh] flex flex-col rounded-[28px] glass-card border border-white/15 shadow-2xl overflow-hidden bg-ink/95 z-10"
           >
-            {/* Ambient Background Gradient Orb */}
-            <div className="absolute top-0 right-1/4 w-72 h-72 bg-vermilion/15 rounded-full blur-[90px] pointer-events-none" />
+            {/* Japanese Background Kanji Watermark */}
+            <div className="absolute top-8 right-6 font-jp text-[120px] font-bold text-white/[0.03] select-none pointer-events-none -z-10 leading-none">
+              調律
+            </div>
 
             {/* Modal Header */}
             <div className="p-6 sm:p-8 pb-4 border-b border-white/10 flex items-center justify-between shrink-0 relative z-10">
               <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-2xl gradient-vermilion flex items-center justify-center text-white shadow-glow">
+                <div className="w-11 h-11 rounded-2xl gradient-vermilion flex items-center justify-center text-white shadow-glow border border-white/20">
                   <Dna className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-label text-[10px] text-vermilion uppercase tracking-[0.25em] font-bold">
-                      Interactive Profile Tuner
+                    <span className="font-jp text-[10px] text-vermilion tracking-[0.25em] font-bold">
+                      ベクター調整
+                    </span>
+                    <span className="text-white/20 text-xs">•</span>
+                    <span className="font-mono text-[10px] text-warm-white/40 uppercase tracking-wider">
+                      ANIME PROFILE SYNTHESIZER
                     </span>
                   </div>
-                  <h3 className="font-headline text-2xl font-bold text-warm-white">
-                    Tune Your Anime Taste DNA
+                  <h3 className="font-headline text-2xl sm:text-3xl font-bold text-warm-white tracking-tight">
+                    Calibrate Anime Taste DNA
                   </h3>
                 </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="w-9 h-9 rounded-full glass border border-white/10 flex items-center justify-center text-warm-white/60 hover:text-warm-white hover:border-white/25 transition-all"
+                className="w-9 h-9 rounded-full glass border border-white/10 flex items-center justify-center text-warm-white/60 hover:text-warm-white hover:border-white/25 transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
