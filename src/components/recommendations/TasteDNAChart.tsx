@@ -180,14 +180,14 @@ export function TasteDNAChart({
   return (
     <>
       <div className={cn("relative rounded-[28px] sm:rounded-[32px] p-5 sm:p-8 md:p-9 glass-card border border-white/12 shadow-2xl overflow-hidden bg-ink/95 group", className)}>
-        {/* Cyberpunk HUD Grid Accents */}
+        {/* Anime Profile Status Header */}
         <div className="flex items-center justify-between font-mono text-[9px] text-warm-white/40 uppercase tracking-widest select-none pointer-events-none mb-3">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-vermilion animate-pulse" />
-            <span>VECTOR_TELEMETRY // ANMX-DNA</span>
+            <span>ANIME TASTE PROFILE // LIVE</span>
           </div>
           <div className="hidden xs:block text-warm-white/30">
-            STATUS: {hasProfile ? "SYNC_LOCKED" : "CALIBRATING"}
+            {hasProfile ? "PROFILE ACTIVE" : "AWAITING ANSWERS"}
           </div>
         </div>
 
@@ -200,11 +200,11 @@ export function TasteDNAChart({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-jp text-[10px] text-vermilion tracking-[0.25em] font-bold">
-                  解析完了
+                  あなたの好み
                 </span>
                 <span className="text-white/20 text-xs hidden sm:inline">•</span>
                 <span className="font-mono text-[10px] text-warm-white/40 uppercase tracking-wider">
-                  Taste Vector Matrix
+                  TASTE RADAR
                 </span>
               </div>
               <h3 className="font-headline text-xl sm:text-2xl md:text-3xl font-bold text-warm-white tracking-tight truncate">
@@ -220,7 +220,7 @@ export function TasteDNAChart({
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl gradient-vermilion text-white hover:opacity-90 font-label text-xs uppercase tracking-wider font-bold shadow-glow flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Re-Tune DNA</span>
+                <span>Edit Preferences</span>
               </button>
             )}
           </div>
@@ -407,13 +407,13 @@ export function TasteDNAChart({
           </div>
         </div>
 
-        {/* Bottom Narrative Vector Insight */}
+        {/* Bottom Taste Insight */}
         <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-2.5 flex-1">
             <Radio className="w-4 h-4 text-vermilion shrink-0 mt-0.5 animate-pulse" />
             <p className="font-body text-xs text-warm-white/70 leading-relaxed">
-              <span className="text-vermilion font-bold uppercase tracking-wider text-[10px] mr-1">Anime Vector Synthesis:</span>
-              Dominant stats in <strong className="text-warm-white">{sorted[0].nameEn} ({sorted[0].value}%)</strong> and <strong className="text-warm-white">{sorted[1].nameEn} ({sorted[1].value}%)</strong>. Recommendations prioritize high-synergy titles in this archetype.
+              <span className="text-vermilion font-bold uppercase tracking-wider text-[10px] mr-1">Your Anime Style:</span>
+              Strongest affinity in <strong className="text-warm-white">{sorted[0].nameEn} ({sorted[0].value}%)</strong> and <strong className="text-warm-white">{sorted[1].nameEn} ({sorted[1].value}%)</strong>. Recommendations prioritize anime matching these traits.
             </p>
           </div>
 
@@ -421,7 +421,7 @@ export function TasteDNAChart({
             href="/recommendations"
             className="text-xs font-label uppercase tracking-widest text-warm-white/60 hover:text-vermilion flex items-center gap-1.5 transition-colors shrink-0 font-bold"
           >
-            <span>Recalibrate Pool</span>
+            <span>View Recommendations</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

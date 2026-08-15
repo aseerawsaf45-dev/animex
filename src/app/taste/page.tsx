@@ -31,14 +31,14 @@ export default async function TastePage() {
             <div className="flex items-center gap-3 mb-3">
               <Sparkles className="w-4 h-4 text-vermilion" />
               <span className="font-label text-[10px] text-vermilion uppercase tracking-[0.25em] font-bold">
-                Dynamic Narrative Profile
+                Your Personal Taste Profile
               </span>
             </div>
             <h1 className="font-headline text-4xl md:text-5xl font-bold mb-3 text-warm-white tracking-tight">
               Your Anime Taste DNA
             </h1>
             <p className="text-warm-white/60 font-body text-base max-w-2xl">
-              An interactive 5-axis narrative geometry calculating your genre affinity, structural pacing, protagonist archetype, and emotional payoff vectors.
+              An interactive visual map highlighting what you look for in anime — from high-energy battles and strategic mind games to emotional character journeys and rich fantasy worlds.
             </p>
           </div>
         </FadeIn>

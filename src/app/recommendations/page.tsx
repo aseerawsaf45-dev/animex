@@ -84,14 +84,14 @@ export default async function RecommendationsPage() {
               <div className="flex items-center gap-3 mb-3">
                 <Sparkles className="w-4 h-4 text-vermilion" />
                 <span className="font-label text-[11px] text-vermilion uppercase tracking-[0.25em] font-bold">
-                  AI Contextual Recommendation Philosophy
+                  Handcrafted For Your Anime Taste
                 </span>
               </div>
               <h1 className="font-headline text-4xl md:text-6xl font-bold mb-3 tracking-tight text-warm-white">
                 Your Anime Universe
               </h1>
               <p className="font-body text-warm-white/60 text-base md:text-lg leading-relaxed">
-                You tell us what you love. <span className="text-warm-white font-semibold">AnimeX finds what comes next.</span>
+                You tell us what you love. <span className="text-warm-white font-semibold">AnimeX finds what you should watch next.</span>
               </p>
             </div>
 
@@ -109,7 +109,7 @@ export default async function RecommendationsPage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <span className="text-vermilion font-label uppercase tracking-[0.2em] text-[11px] font-bold mb-1 block">
-                    01 — Personalized Top Pick
+                    01 — Top Recommendation
                   </span>
                   <InkStrokeReveal>
                     <h2 className="font-headline text-3xl md:text-4xl font-bold text-warm-white">YOUR NEXT OBSESSION</h2>
@@ -132,7 +132,7 @@ export default async function RecommendationsPage() {
                       {topPick.matchPercentage || 98}% Match
                     </span>
                     <span className="font-label text-xs uppercase tracking-widest text-warm-white/50">
-                      Top Vector Similarity Score
+                      Highest Taste Affinity
                     </span>
                   </div>
 
@@ -141,7 +141,7 @@ export default async function RecommendationsPage() {
                   </h3>
 
                   <p className="font-body text-warm-white/70 text-sm md:text-base leading-relaxed line-clamp-3">
-                    {topPick.anime?.synopsis?.replace(/<[^>]*>?/gm, "") || "A tailored discovery pick based on your interaction vector."}
+                    {topPick.anime?.synopsis?.replace(/<[^>]*>?/gm, "") || "A tailored discovery pick based on your favorite anime styles."}
                   </p>
 
                   <div className="pt-2 flex flex-wrap gap-4 items-center">
@@ -149,7 +149,7 @@ export default async function RecommendationsPage() {
                       href={`/anime/${topPick.anime?.id}`}
                       className="px-8 py-3.5 rounded-xl gradient-vermilion text-white font-label text-xs uppercase tracking-widest shadow-glow inline-flex items-center gap-2 font-bold"
                     >
-                      <span>Explore Pick</span>
+                      <span>Explore Anime</span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                   </div>
@@ -172,7 +172,7 @@ export default async function RecommendationsPage() {
             <FadeIn className="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
               <div>
                 <span className="text-vermilion font-label uppercase tracking-[0.2em] text-[11px] font-bold mb-1 block">
-                  02 — Contextual Anchoring
+                  02 — Based on Your Favorites
                 </span>
                 <InkStrokeReveal>
                   <h2 className="font-headline text-3xl font-bold text-warm-white">{dynamicContextTitle}</h2>
@@ -188,7 +188,7 @@ export default async function RecommendationsPage() {
                     index={i}
                     showMatch
                     matchScore={rec.matchPercentage}
-                    reason="Matched directly with your taste profile"
+                    reason="Direct match with your favorite genres"
                   />
                 </StaggerItem>
               ))}
@@ -202,7 +202,7 @@ export default async function RecommendationsPage() {
             <FadeIn className="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
               <div>
                 <span className="text-vermilion font-label uppercase tracking-[0.2em] text-[11px] font-bold mb-1 block">
-                  03 — Semantic Similarity
+                  03 — Similar Atmosphere
                 </span>
                 <InkStrokeReveal>
                   <h2 className="font-headline text-3xl font-bold text-warm-white">SAME VIBE. DIFFERENT STORY.</h2>
@@ -218,7 +218,7 @@ export default async function RecommendationsPage() {
                     index={i}
                     showMatch
                     matchScore={rec.matchPercentage}
-                    reason="Identical atmosphere, unique setting"
+                    reason="Identical tone & atmosphere"
                   />
                 </StaggerItem>
               ))}
@@ -231,7 +231,7 @@ export default async function RecommendationsPage() {
           <FadeIn className="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
             <div>
               <span className="text-vermilion font-label uppercase tracking-[0.2em] text-[11px] font-bold mb-1 block">
-                05 — Curation Discovery
+                04 — Hidden Treasures
               </span>
               <InkStrokeReveal>
                 <h2 className="font-headline text-3xl md:text-4xl font-bold text-warm-white">HIDDEN GEMS FOR YOU</h2>
@@ -247,7 +247,7 @@ export default async function RecommendationsPage() {
                   index={i}
                   showMatch
                   matchScore={rec.matchPercentage}
-                  reason="High quality rating, low mainstream saturation"
+                  reason="Critically acclaimed masterpieces worth discovering"
                 />
               </StaggerItem>
             ))}
@@ -260,7 +260,7 @@ export default async function RecommendationsPage() {
             <FadeIn className="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
               <div>
                 <span className="text-vermilion font-label uppercase tracking-[0.2em] text-[11px] font-bold mb-1 block">
-                  06 — Collaborative Filtering
+                  05 — Community Favorites
                 </span>
                 <InkStrokeReveal>
                   <h2 className="font-headline text-3xl font-bold text-warm-white">TRENDING IN YOUR WORLD</h2>
@@ -276,7 +276,7 @@ export default async function RecommendationsPage() {
                     index={i}
                     showMatch
                     matchScore={rec.matchPercentage}
-                    reason="Trending among similar viewers"
+                    reason="Popular among fans with similar tastes"
                   />
                 </StaggerItem>
               ))}

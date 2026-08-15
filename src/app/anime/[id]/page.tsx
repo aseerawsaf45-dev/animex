@@ -269,13 +269,13 @@ export default async function AnimeDetailPage({ params }: { params: Promise<{ id
               <div className="glass rounded-2xl p-6 shadow-elevated">
                 <h3 className="font-headline text-lg font-bold text-white mb-6 flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-white/50" />
-                  Intelligence Insights
+                  Taste Breakdown
                 </h3>
                 <div className="space-y-5">
                   {[
-                    { label: "Similarity to Favorites", score: `${baseMatchScore}%`, width: `${baseMatchScore}%`, color: "bg-warm-white" },
-                    { label: "Collaborative Filtering", score: `${Math.min(95, baseMatchScore - 4)}%`, width: `${Math.min(95, baseMatchScore - 4)}%`, color: "bg-vermilion" },
-                    { label: "Genre Affinity", score: `${genreAffinityPercent}%`, width: `${genreAffinityPercent}%`, color: "bg-warm-white" }
+                    { label: "Story & Theme Match", score: `${baseMatchScore}%`, width: `${baseMatchScore}%`, color: "bg-warm-white" },
+                    { label: "Viewer Community Score", score: `${Math.min(95, baseMatchScore - 4)}%`, width: `${Math.min(95, baseMatchScore - 4)}%`, color: "bg-vermilion" },
+                    { label: "Genre Preference Match", score: `${genreAffinityPercent}%`, width: `${genreAffinityPercent}%`, color: "bg-warm-white" }
                   ].map((insight) => (
                     <div key={insight.label}>
                       <div className="flex justify-between text-xs font-label text-white/70 uppercase tracking-wide mb-2">
