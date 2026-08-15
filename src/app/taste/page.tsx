@@ -1,63 +1,115 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { FadeIn } from "@/components/motion/FadeIn";
-import { Stagger, StaggerItem } from "@/components/motion/Stagger";
-import { AnimeCard } from "@/components/anime/AnimeCard";
-import { RadarChart } from "@/components/anime/RadarChart";
+import { TasteDNAChart } from "@/components/recommendations/TasteDNAChart";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { Sparkles, ArrowRight, Dna, Layers } from "lucide-react";
 
 export default async function TastePage() {
   const session = await auth();
-  if (!session?.user) redirect("/login?from=/taste");
+  if (!session?.user?.id) redirect("/login?from=/taste");
 
-  // Placeholder DNA data — in production this is derived from the user's feature vector
-  const dnaData = [
-    { label: "Action",      value: 0.82 },
-    { label: "Drama",       value: 0.65 },
-    { label: "Fantasy",     value: 0.74 },
-    { label: "Romance",     value: 0.43 },
-    { label: "Psychological",value: 0.91},
-    { label: "Sci-Fi",      value: 0.58 },
-  ];
+  const userPref = await prisma.userPreference.findUnique({
+    where: { userId: session.user.id }
+  });
+
+  const genres: string[] = (userPref?.genreWeights as string[]) || [];
+  const themes: string[] = (userPref?.themeWeights as string[]) || [];
+  const eras: string[] = (userPref?.preferredEras as string[]) || [];
 
   return (
-    <div className="pt-28 pb-20">
-      <div className="page-container">
+    <div className="pt-28 pb-24 relative overflow-hidden">
+      {/* Background Japanese Watermark */}
+      <div className="japanese-deco text-[160px] md:text-[240px] font-bold leading-none top-20 right-[-3%] opacity-5 pointer-events-none select-none -z-10">
+        味覚
+      </div>
+
+      <div className="page-container max-w-5xl">
         <FadeIn>
-          <div className="mb-12">
-            <p className="font-jp text-[10px] text-warm-white/30 tracking-[0.4em] uppercase mb-2">アニメDNA</p>
-            <h1 className="font-headline text-5xl font-bold mb-3">Your Anime DNA</h1>
-            <p className="text-warm-white/40 font-body text-lg">A visual map of your unique taste profile.</p>
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-3">
+              <Sparkles className="w-4 h-4 text-vermilion" />
+              <span className="font-label text-[10px] text-vermilion uppercase tracking-[0.25em] font-bold">
+                Dynamic Narrative Profile
+              </span>
+            </div>
+            <h1 className="font-headline text-4xl md:text-5xl font-bold mb-3 text-warm-white tracking-tight">
+              Your Anime Taste DNA
+            </h1>
+            <p className="text-warm-white/60 font-body text-base max-w-2xl">
+              An interactive 5-axis narrative geometry calculating your genre affinity, structural pacing, protagonist archetype, and emotional payoff vectors.
+            </p>
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
-          <FadeIn delay={0.1}>
-            <div className="glass-card rounded-[24px] p-10">
-              <RadarChart data={dnaData} />
-            </div>
-          </FadeIn>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+          {/* Main Visualizer */}
+          <div className="lg:col-span-7">
+            <FadeIn delay={0.1}>
+              <TasteDNAChart userPref={userPref} showEditButton={true} />
+            </FadeIn>
+          </div>
 
-          <FadeIn delay={0.2}>
-            <div className="space-y-6">
-              <h2 className="font-headline text-2xl font-bold">Your Top Genres</h2>
-              <div className="space-y-3">
-                {dnaData.sort((a,b) => b.value - a.value).map(({ label, value }) => (
-                  <div key={label} className="space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-label text-[12px] uppercase tracking-wider text-warm-white/70">{label}</span>
-                      <span className="font-label text-[11px] text-vermilion">{Math.round(value * 100)}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-surface overflow-hidden">
-                      <div
-                        className="h-full rounded-full gradient-vermilion transition-all duration-1000"
-                        style={{ width: `${value * 100}%` }}
-                      />
-                    </div>
+          {/* Calibrated Preferences Breakdown */}
+          <div className="lg:col-span-5 space-y-6">
+            <FadeIn delay={0.2}>
+              <div className="glass-card rounded-[28px] p-8 border border-white/10 shadow-2xl space-y-6">
+                <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                  <div className="w-10 h-10 rounded-xl gradient-vermilion flex items-center justify-center text-white shadow-glow">
+                    <Layers className="w-5 h-5" />
                   </div>
-                ))}
+                  <div>
+                    <h3 className="font-headline text-xl font-bold text-warm-white">DNA Dimensions</h3>
+                    <p className="font-body text-xs text-warm-white/40">Active calibration layers</p>
+                  </div>
+                </div>
+
+                {/* Genres */}
+                <div className="space-y-2">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-vermilion font-bold">Active Genres</p>
+                  <div className="flex flex-wrap gap-2">
+                    {genres.length > 0 ? (
+                      genres.map((g) => (
+                        <span key={g} className="px-3 py-1 rounded-full glass border border-white/10 text-xs font-label font-bold text-warm-white">
+                          {g}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-warm-white/40 italic">Awaiting genre calibration</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Eras */}
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-vermilion font-bold">Aesthetic Eras</p>
+                  <div className="flex flex-wrap gap-2">
+                    {eras.length > 0 ? (
+                      eras.map((e) => (
+                        <span key={e} className="px-3 py-1 rounded-full glass border border-white/10 text-xs font-label font-bold text-warm-white">
+                          {e.toUpperCase()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-warm-white/40 italic">All eras inclusive</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action CTA */}
+                <div className="pt-4 border-t border-white/10">
+                  <Link
+                    href="/recommendations"
+                    className="w-full py-3.5 rounded-xl gradient-vermilion text-white font-label text-xs uppercase tracking-widest font-bold shadow-glow flex items-center justify-center gap-2 hover:opacity-95 transition-opacity"
+                  >
+                    <span>View Matched Recommendations</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
-            </div>
-          </FadeIn>
+            </FadeIn>
+          </div>
         </div>
       </div>
     </div>
