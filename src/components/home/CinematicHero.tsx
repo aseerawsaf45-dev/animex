@@ -35,9 +35,6 @@ export function CinematicHero() {
 
   return (
     <header className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden bg-ink">
-      {/* 08 — Sakura Canvas Particle System */}
-      <SakuraParticles count={25} />
-
       {/* 01 — Hero Video Background Fade & Scale Reveal */}
       <div className="absolute inset-0 z-0">
         <div className="absolute right-0 top-0 w-full lg:w-2/3 h-full">
