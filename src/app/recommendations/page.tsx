@@ -1,11 +1,10 @@
 import { FadeIn } from "@/components/motion/FadeIn";
 import { AnimeCard } from "@/components/anime/AnimeCard";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
-import { TasteDNAChart } from "@/components/recommendations/TasteDNAChart";
 import { MoodSelector } from "@/components/recommendations/MoodSelector";
 import { SurpriseMeButton } from "@/components/recommendations/SurpriseMeButton";
 import { InkStrokeReveal } from "@/components/motion/InkStrokeReveal";
-import { Sparkles, ArrowRight, Dna } from "lucide-react";
+import { Sparkles, ArrowRight, Compass, Flame, Wand2, Shield, Eye, Layers, Dna } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -227,38 +226,33 @@ export default async function RecommendationsPage() {
           </section>
         )}
 
-        {/* 05 — HIDDEN GEMS & 08 — TASTE DNA GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          <div className="lg:col-span-2">
-            <FadeIn className="mb-6 border-b border-white/10 pb-4">
+        {/* 05 — HIDDEN GEMS (Full width recommendation grid) */}
+        <section className="mb-16">
+          <FadeIn className="flex justify-between items-end mb-8 border-b border-white/10 pb-4">
+            <div>
               <span className="text-vermilion font-label uppercase tracking-[0.2em] text-[11px] font-bold mb-1 block">
-                05 — Curation
+                05 — Curation Discovery
               </span>
               <InkStrokeReveal>
-                <h2 className="font-headline text-3xl font-bold text-warm-white">HIDDEN GEMS FOR YOU</h2>
+                <h2 className="font-headline text-3xl md:text-4xl font-bold text-warm-white">HIDDEN GEMS FOR YOU</h2>
               </InkStrokeReveal>
-            </FadeIn>
+            </div>
+          </FadeIn>
 
-            <Stagger className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-              {hiddenGemsPicks.map((rec: any, i: number) => (
-                <StaggerItem key={`hg-${rec.anime?.id || i}`}>
-                  <AnimeCard
-                    anime={rec.anime}
-                    index={i}
-                    showMatch
-                    matchScore={rec.matchPercentage}
-                    reason="High quality rating, low popularity"
-                  />
-                </StaggerItem>
-              ))}
-            </Stagger>
-          </div>
-
-          {/* 08 — YOUR ANIME TASTE DNA */}
-          <div>
-            <TasteDNAChart />
-          </div>
-        </div>
+          <Stagger className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            {hiddenGemsPicks.map((rec: any, i: number) => (
+              <StaggerItem key={`hg-${rec.anime?.id || i}`}>
+                <AnimeCard
+                  anime={rec.anime}
+                  index={i}
+                  showMatch
+                  matchScore={rec.matchPercentage}
+                  reason="High quality rating, low mainstream saturation"
+                />
+              </StaggerItem>
+            ))}
+          </Stagger>
+        </section>
 
         {/* 06 — TRENDING IN YOUR WORLD */}
         {trendingWorldPicks.length > 0 && (
