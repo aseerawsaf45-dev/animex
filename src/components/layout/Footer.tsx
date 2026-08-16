@@ -35,8 +35,8 @@ export function Footer() {
         <div>
           {/* Logo & Title */}
           <Link href="/" className="inline-flex items-center gap-3 mb-4 group">
-            <div className="w-9 h-9 rounded-[10px] overflow-hidden border border-white/15 shadow-glow group-hover:scale-105 transition-transform duration-300 bg-charcoal">
-              <img src="/logo.jpg" alt="AnimeX Logo" className="w-full h-full object-cover" />
+            <div className="w-9 h-9 rounded-[10px] p-1.5 overflow-hidden border border-white/10 shadow-glow group-hover:scale-105 transition-transform duration-300 bg-charcoal/80 flex items-center justify-center">
+              <img src="/logo.png" alt="AnimeX Logo" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(211,47,47,0.8)]" />
             </div>
             <span className="font-headline text-xl font-bold text-warm-white tracking-tight group-hover:text-vermilion transition-colors duration-300">
               AnimeX

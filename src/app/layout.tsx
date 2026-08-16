@@ -9,6 +9,11 @@ import { ToriiTransition } from "@/components/motion/ToriiTransition";
 import { SakuraParticles } from "@/components/motion/SakuraParticles";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "https://animex-two.vercel.app"
+  ),
   title: {
     default: "AnimeX — Discover Your Next Story",
     template: "%s | AnimeX",
@@ -16,9 +21,12 @@ export const metadata: Metadata = {
   description: "AI-powered anime recommendations shaped around your unique taste and cinematic preferences.",
   keywords: ["anime", "recommendation", "discover", "AI", "watchlist"],
   icons: {
-    icon: "/logo.jpg",
-    shortcut: "/logo.jpg",
-    apple: "/logo.jpg",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/logo.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
   },
   openGraph: {
     title: "AnimeX — Discover Your Next Story",

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.jpg" width="80" alt="AnimeX Logo" />
+  <img src="public/logo.png" width="80" alt="AnimeX Logo" />
 </p>
 
 <h1 align="center">AnimeX</h1>

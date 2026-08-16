@@ -47,7 +47,7 @@ export function Navbar() {
           transition={{ type: "spring", stiffness: 350, damping: 15 }}
           className="relative"
         >
-          <img src="/logo.jpg" alt="AnimeX Logo" className="w-8 h-8 rounded-[8px] object-cover shadow-glow group-hover:shadow-[0_0_20px_rgba(211,47,47,0.8)] transition-shadow duration-300" />
+          <img src="/logo.png" alt="AnimeX Logo" className="w-8 h-8 object-contain drop-shadow-[0_0_10px_rgba(211,47,47,0.7)] group-hover:drop-shadow-[0_0_18px_rgba(211,47,47,0.95)] transition-all duration-300" />
         </motion.div>
         <span className="font-headline text-[17px] font-bold text-warm-white tracking-tight group-hover:text-vermilion transition-colors duration-300">
           AnimeX
